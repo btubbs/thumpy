@@ -6,6 +6,7 @@ logs/*.log
 env/*
 conf/*
 blame.yaml
+site.yaml
 ._*
 project/static/*
 NOTES
@@ -16,6 +17,7 @@ bin/*
 eggs/*
 downloads/*
 lib/*
+roles/*
 build/*
 dist/*
 env/*

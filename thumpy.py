@@ -34,12 +34,13 @@ class MissingImage(Exception):
 
 class S3Storage(object):
     def __init__(self, s3_key, s3_secret, s3_bucket, **kwargs):
-        self.conn = connect_s3(key, secret)
-        self.bucket = self.conn.get_bucket(bucket)
+        self.conn = connect_s3(s3_key, s3_secret)
+        self.bucket = self.conn.get_bucket(s3_bucket)
 
     def get_image(self, path):
         # Make a boto connection, pull down the file, and return the file
         # object.  If not found, return None
+
         key = self.bucket.get_key(path)
         if path is None:
             raise MissingImage, "No key for %s" % path
@@ -47,6 +48,9 @@ class S3Storage(object):
         # For returning PIL "Image" from a url see
         # http://blog.hardlycode.com/pil-image-from-url-2011-01/.  That will
         # need to be adapted a little bit to work from S3, but should be fine.
+
+        if not key or not key.exists():
+            raise MissingImage("No file for %s" % path)
 
         im = Image(path)
         # actually stick the data in there
@@ -82,15 +86,17 @@ class Image(object):
 
         # TODO: isn't there a python mimetypes library that can do this file
         # format guessing a little more intelligently?
-        self.fmt = path.split('.')[-1]
+        self.fmt = path.split('.')[-1].lower()
+        if self.fmt.lower() == 'jpg':
+            self.fmt = 'jpeg'
 
     def scale(self, w, h):
+        if w > self.im.size[0]:
+            w = self.im.size[0]    
 
-        # TODO: Guard against sizes that are too large and will chew up memory,
-        # as well as zeros, which seem to trigger a divide-by-zero error inside
-        # python's malloc o.O
-        # It's probably OK to just forbid upsizing an image, since that *hurts*
-        # bandwidth and could DoS the server.
+        if h > self.im.size[1]:
+            h = self.im.size[1]    
+
         self.im = self.im.resize((w, h), PILImage.ANTIALIAS)
 
     def scale_to_width(self, w):
@@ -102,6 +108,29 @@ class Image(object):
         r =  float(h) / self.im.size[1]
         w = int(self.im.size[0] * r)
         self.scale(w, h)
+
+    def crop(self, w=None, h=None):
+        w = w or self.im.size[0]
+        h = h or self.im.size[1]
+
+        if w > self.im.size[0]:
+            w = self.im.size[0]    
+
+        if h > self.im.size[1]:
+            h = self.im.size[1]    
+
+        left = (self.im.size[0] / 2) - (w / 2)
+        top = (self.im.size[1] / 2) - (h / 2)
+        right = left + w
+        bottom = top + h
+
+        print self.im.size
+        print left
+        print top
+        print right
+        print bottom
+
+        self.im = self.im.crop((left, top, right, bottom))
 
     # XXX: Take a look at the ImageOps module, which would seem to do most of
     # what I'm looking for. http://www.pythonware.com/library/pil/handbook/imageops.htm
@@ -120,6 +149,13 @@ class Image(object):
             self.scale_to_height(int(options['h']))
 
         # Now do any cropping.  This order is important.
+        if 'cw' in options and 'ch' in options:
+            self.crop(w=int(options['cw']), h=int(options['ch']))
+        elif 'cw' in options:
+            self.crop(w=int(options['cw']))
+        elif 'ch' in options:
+            self.crop(h=int(options['ch']))
+
 
 
         # Other filters
