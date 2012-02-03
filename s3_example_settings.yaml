@@ -2,7 +2,7 @@ host: localhost
 port: 8000
 ignore_favicon: True
 cloudfront_ugliness: True
-storage_backend: S3Storage
+storage: S3Storage
 s3_key: xxx
 s3_secret: xxx
 s3_bucket: xxx

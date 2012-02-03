@@ -33,7 +33,7 @@ class MissingImage(Exception):
 
 
 class S3Storage(object):
-    def __init__(self, key, secret, bucket):
+    def __init__(self, s3_key, s3_secret, s3_bucket, **kwargs):
         self.conn = connect_s3(key, secret)
         self.bucket = self.conn.get_bucket(bucket)
 
@@ -56,7 +56,7 @@ class S3Storage(object):
 
 
 class LocalStorage(object):
-    def __init__(self, root=None):
+    def __init__(self, root=None, **kwargs):
         self.root = os.path.realpath(root or os.path.dirname(__file__))
 
     def get_image(self, path):
@@ -164,8 +164,12 @@ def Http404(start_response):
 
 
 def app(environ,start_response):
-    # TODO: make this configurable.
-    sto = LocalStorage()
+    if config['storage'] == 'LocalStorage':
+        sto = LocalStorage(**config)
+    elif config['storage'] == 'S3Storage':
+        sto = S3Storage(**config)
+    else:
+        raise Exception('Invalid storage backend.')
 
     # throw away the leading slash on the path.
     path = environ['PATH_INFO']
