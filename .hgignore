@@ -1,4 +1,5 @@
 syntax: glob
+settings.yaml
 *pyc
 *swp
 logs/*.log

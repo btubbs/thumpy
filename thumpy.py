@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 
+"""
+Thumpy web process to resize images.
+"""
+
+import argparse
 import os
 import urlparse
+import yaml
 from cStringIO import StringIO
 
 try:
@@ -11,6 +17,16 @@ except ImportError:
 
 from PIL import ImageOps, Image as PILImage
 from boto import connect_s3
+
+
+config = {
+    'host': 'localhost',
+    'port': 8000,
+    'ignore_favicon': True,
+    'cloudfront_ugliness': False,
+    'storage_backend': 'LocalStorage',
+}
+
 
 class MissingImage(Exception):
     pass
@@ -142,9 +158,6 @@ def oparse_qs(qs, keep_blank_values=0, strict_parsing=0):
     return od
 
 
-IGNORE_FAVICON = True
-CLOUDFRONT_UGLINESS = False
-
 def Http404(start_response):
     start_response("404 NOT FOUND", [('Content-Type','text/plain')])
     return ["File not found"]
@@ -155,12 +168,14 @@ def app(environ,start_response):
     sto = LocalStorage()
 
     # throw away the leading slash on the path.
-    path = environ['PATH_INFO'][1:]
+    path = environ['PATH_INFO']
+    if path.startswith('/'):
+        path = path[1:]
 
-    if CLOUDFRONT_UGLINESS:
+    if config['cloudfront_ugliness']:
         # DIRTY CLOUDFRONT HACK HERE
-        # Stupid CloudFront doesn't pass query string arguments, so we have to put
-        # image change params into the path.
+        # Stupid CloudFront doesn't pass query string arguments, so we have to
+        # put image change params into the path.
         pathparts = path.split('/')
 
         #path = environ['PATH_INFO'][1:]
@@ -172,7 +187,7 @@ def app(environ,start_response):
         filepath = path
         params = oparse_qs(environ['QUERY_STRING'])
 
-    if IGNORE_FAVICON and filepath == 'favicon.ico':
+    if config['ignore_favicon'] and filepath == 'favicon.ico':
         return Http404(start_response)
 
     try:
@@ -183,13 +198,25 @@ def app(environ,start_response):
     start_response("200 OK", [('Content-Type',im.mimetype)])
     return [im.contents(options=params)]
 
+
 if __name__ == '__main__':
     from gevent.wsgi import WSGIServer
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--config', dest='config_file',
+                    default='',
+                    help='Path to the YAML config file.')
+
+    args = parser.parse_args()
+
+    if args.config_file:
+        with open(args.config_file, 'r') as f:
+            config.update(yaml.safe_load(f))
 
     # monkeypatching with gevent should make our calls out to S3 non-blocking.
     # It won't do anything for out CPU-bound image processing though.
     #from gevent import monkey; monkey.patch_socket()
-    address = "0.0.0.0", 8000
+    address = config['host'], config['port']
     server = WSGIServer(address, app)
     try:
         print "Server running on port %s:%d. Ctrl+C to quit" % address
@@ -197,4 +224,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         server.stop()
         print "Bye bye"
-
