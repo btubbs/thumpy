@@ -19,12 +19,14 @@ from PIL import ImageOps, Image as PILImage
 from boto import connect_s3
 
 
+# Default configuration here.  Override by specifying a settings.yaml file with
+# your own values.
 config = {
     'host': 'localhost',
     'port': 8000,
     'ignore_favicon': True,
     'cloudfront_ugliness': False,
-    'storage_backend': 'LocalStorage',
+    'storage': 'LocalStorage',
 }
 
 
@@ -92,10 +94,10 @@ class Image(object):
 
     def scale(self, w, h):
         if w > self.im.size[0]:
-            w = self.im.size[0]    
+            w = self.im.size[0]
 
         if h > self.im.size[1]:
-            h = self.im.size[1]    
+            h = self.im.size[1]
 
         self.im = self.im.resize((w, h), PILImage.ANTIALIAS)
 
@@ -114,26 +116,17 @@ class Image(object):
         h = h or self.im.size[1]
 
         if w > self.im.size[0]:
-            w = self.im.size[0]    
+            w = self.im.size[0]
 
         if h > self.im.size[1]:
-            h = self.im.size[1]    
+            h = self.im.size[1]
 
         left = (self.im.size[0] / 2) - (w / 2)
         top = (self.im.size[1] / 2) - (h / 2)
         right = left + w
         bottom = top + h
 
-        print self.im.size
-        print left
-        print top
-        print right
-        print bottom
-
         self.im = self.im.crop((left, top, right, bottom))
-
-    # XXX: Take a look at the ImageOps module, which would seem to do most of
-    # what I'm looking for. http://www.pythonware.com/library/pil/handbook/imageops.htm
 
     def process(self, options):
 
@@ -162,14 +155,12 @@ class Image(object):
         if 'gray' in options:
             self.im = ImageOps.grayscale(self.im)
 
-    def contents(self, fmt=None, options=None):
-        if options:
-            self.process(options)
+    @property
+    def contents(self):
         # Write the file contents out to a specific format, but just in memory.
         # Return them as a string.
-        fmt = fmt or self.fmt
         f = StringIO()
-        self.im.save(f, fmt)
+        self.im.save(f, self.fmt)
         f.seek(0)
         # TODO: probably better to just return the file object rather than copy
         # it out into a string, which doubles the memory usage.
@@ -198,14 +189,17 @@ def Http404(start_response):
     start_response("404 NOT FOUND", [('Content-Type','text/plain')])
     return ["File not found"]
 
-
-def app(environ,start_response):
+def get_storage(config):
     if config['storage'] == 'LocalStorage':
-        sto = LocalStorage(**config)
+        return LocalStorage(**config)
     elif config['storage'] == 'S3Storage':
-        sto = S3Storage(**config)
+        return S3Storage(**config)
     else:
         raise Exception('Invalid storage backend.')
+
+
+def app(environ,start_response):
+    sto = get_storage(config)
 
     # throw away the leading slash on the path.
     path = environ['PATH_INFO']
@@ -217,11 +211,7 @@ def app(environ,start_response):
         # Stupid CloudFront doesn't pass query string arguments, so we have to
         # put image change params into the path.
         pathparts = path.split('/')
-
-        #path = environ['PATH_INFO'][1:]
         filepath = '/'.join(pathparts[1:])
-
-        #params = oparse_qs(environ['QUERY_STRING'])
         params = oparse_qs(pathparts[0])
     else:
         filepath = path
@@ -236,10 +226,10 @@ def app(environ,start_response):
         return Http404(start_response)
 
     start_response("200 OK", [('Content-Type',im.mimetype)])
-    return [im.contents(options=params)]
+    im.process(options=params)
+    return [im.contents]
 
-
-if __name__ == '__main__':
+def run():
     from gevent.wsgi import WSGIServer
 
     parser = argparse.ArgumentParser(description=__doc__)
@@ -253,9 +243,8 @@ if __name__ == '__main__':
         with open(args.config_file, 'r') as f:
             config.update(yaml.safe_load(f))
 
-    # monkeypatching with gevent should make our calls out to S3 non-blocking.
-    # It won't do anything for out CPU-bound image processing though.
-    #from gevent import monkey; monkey.patch_socket()
+    # XXX: Can we monkeypatch with gevent to make our calls out to S3
+    # non-blocking?  Do we get that for free by using the gevent wsgi server?
     address = config['host'], config['port']
     server = WSGIServer(address, app)
     try:
@@ -264,3 +253,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         server.stop()
         print "Bye bye"
+
+if __name__ == '__main__':
+    run()
