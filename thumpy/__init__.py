@@ -57,7 +57,10 @@ class S3Storage(object):
         im = Image(path)
         # actually stick the data in there
         im.storage = self
-        im.im = PILImage.open(StringIO(key.read()))
+        try:
+            im.im = PILImage.open(StringIO(key.read()))
+        except IOError:
+            raise MissingImage, path
         return im
 
 
