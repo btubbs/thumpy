@@ -192,6 +192,10 @@ def Http404(start_response):
     start_response("404 NOT FOUND", [('Content-Type','text/plain')])
     return ["File not found"]
 
+def Http500(start_response):
+    start_response("500 SERVER ERROR", [('Content-Type','text/plain')])
+    return ["Server Error"]
+
 def get_storage(config):
     if config['storage'] == 'LocalStorage':
         return LocalStorage(**config)
@@ -202,35 +206,44 @@ def get_storage(config):
 
 
 def app(environ,start_response):
-    sto = get_storage(config)
-
-    # throw away the leading slash on the path.
-    path = environ['PATH_INFO']
-    if path.startswith('/'):
-        path = path[1:]
-
-    if config['cloudfront_ugliness']:
-        # DIRTY CLOUDFRONT HACK HERE
-        # Stupid CloudFront doesn't pass query string arguments, so we have to
-        # put image change params into the path.
-        pathparts = path.split('/')
-        filepath = '/'.join(pathparts[1:])
-        params = oparse_qs(pathparts[0])
-    else:
-        filepath = path
-        params = oparse_qs(environ['QUERY_STRING'])
-
-    if config['ignore_favicon'] and filepath == 'favicon.ico':
-        return Http404(start_response)
-
+    # catch all server errors.  only dump stacktrace if config['debug'] is
+    # true.
     try:
-        im = sto.get_image(filepath)
-    except MissingImage:
-        return Http404(start_response)
+        sto = get_storage(config)
 
-    start_response("200 OK", [('Content-Type',im.mimetype)])
-    im.process(options=params)
-    return [im.contents]
+        # throw away the leading slash on the path.
+        path = environ['PATH_INFO']
+        if path.startswith('/'):
+            path = path[1:]
+
+        if config['cloudfront_ugliness']:
+            # DIRTY CLOUDFRONT HACK HERE
+            # Stupid CloudFront doesn't pass query string arguments, so we have to
+            # put image change params into the path.
+            pathparts = path.split('/')
+            filepath = '/'.join(pathparts[1:])
+            params = oparse_qs(pathparts[0])
+        else:
+            filepath = path
+            params = oparse_qs(environ['QUERY_STRING'])
+
+        if config['ignore_favicon'] and filepath == 'favicon.ico':
+            return Http404(start_response)
+
+        try:
+            im = sto.get_image(filepath)
+        except MissingImage:
+            return Http404(start_response)
+
+        start_response("200 OK", [('Content-Type',im.mimetype)])
+        im.process(options=params)
+        return [im.contents]
+    except:
+        if config.get('debug') == True:
+            # re-raise original exception
+            raise
+        else:
+            return Http500(start_response)
 
 def run():
     from gevent.wsgi import WSGIServer
