@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='thumpy',
-    version='0.0.3',
+    version='0.0.4',
     author='Brent Tubbs/Berry Phillips',
     author_email='brent.tubbs@gmail.com/berryphillips@gmail.com',
 	packages=find_packages(),

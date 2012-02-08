@@ -235,9 +235,10 @@ def app(environ,start_response):
         except MissingImage:
             return Http404(start_response)
 
-        start_response("200 OK", [('Content-Type',im.mimetype)])
         im.process(options=params)
-        return [im.contents]
+        contents = im.contents
+        start_response("200 OK", [('Content-Type',im.mimetype)])
+        return [contents]
     except:
         if config.get('debug') == True:
             # re-raise original exception
