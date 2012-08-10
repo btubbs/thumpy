@@ -216,10 +216,13 @@ def app(environ,start_response):
         if path.startswith('/'):
             path = path[1:]
 
-        if config['cloudfront_ugliness']:
-            # DIRTY CLOUDFRONT HACK HERE
-            # Stupid CloudFront doesn't pass query string arguments, so we have to
-            # put image change params into the path.
+        # DIRTY CLOUDFRONT HACK HERE
+        # CloudFront didn't used to pass query string arguments, so we had to
+        # put image change params into the path.  Now it passes them, so we
+        # have this interim hack where if ugliness is enabled, and there are no
+        # actual qs args, then we'll try to get them from the first path
+        # component.
+        if config['cloudfront_ugliness'] and not environ['QUERY_STRING']:
             pathparts = path.split('/')
             filepath = '/'.join(pathparts[1:])
             params = oparse_qs(pathparts[0])
