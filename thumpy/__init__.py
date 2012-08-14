@@ -240,7 +240,12 @@ def app(environ,start_response):
 
         im.process(options=params)
         contents = im.contents
-        start_response("200 OK", [('Content-Type',im.mimetype)])
+        headers = [
+            ('Content-Type', im.mimetype),
+            ('Expires', 'Thu, 01 Dec 2050 16:00:00 GMT'),
+            ('Cache-Control', 'max-age=31536000'),
+        ]
+        start_response("200 OK", headers)
         return [contents]
     except:
         if config.get('debug') == True:
@@ -248,6 +253,7 @@ def app(environ,start_response):
             raise
         else:
             return Http500(start_response)
+
 
 def run():
     from gevent.wsgi import WSGIServer
