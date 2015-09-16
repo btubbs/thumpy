@@ -27,6 +27,7 @@ config = {
     'ignore_favicon': True,
     'cloudfront_ugliness': False,
     'storage': 'LocalStorage',
+    'quality': 75
 }
 
 
@@ -163,7 +164,7 @@ class Image(object):
         # Write the file contents out to a specific format, but just in memory.
         # Return them as a string.
         f = StringIO()
-        self.im.save(f, self.fmt)
+        self.im.save(f, self.fmt, quality=config['quality'])
         f.seek(0)
         # TODO: probably better to just return the file object rather than copy
         # it out into a string, which doubles the memory usage.
