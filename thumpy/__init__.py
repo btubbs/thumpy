@@ -27,7 +27,7 @@ config = {
     'ignore_favicon': True,
     'cloudfront_ugliness': False,
     'storage': 'LocalStorage',
-    'quality': 75
+    'quality': 75,
     'cors_hosts': [],
 }
 
