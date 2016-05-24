@@ -28,6 +28,7 @@ config = {
     'cloudfront_ugliness': False,
     'storage': 'LocalStorage',
     'quality': 75
+    'cors_hosts': [],
 }
 
 
@@ -205,6 +206,23 @@ def get_storage(config):
     else:
         raise Exception('Invalid storage backend.')
 
+def is_request_cors_eligible(environ):
+    if 'HTTP_ORIGIN' not in environ:
+        return False
+        
+    http_origin = environ['HTTP_ORIGIN']
+    
+    if http_origin in config['cors_hosts']:
+        return True
+    else:
+        return False
+
+def get_cors_headers(environ):
+    http_origin = environ['HTTP_ORIGIN']
+
+    return [
+        ('Access-Control-Allow-Origin', http_origin),
+    ]
 
 def app(environ,start_response):
     # catch all server errors.  only dump stacktrace if config['debug'] is
@@ -246,6 +264,9 @@ def app(environ,start_response):
             ('Expires', 'Thu, 01 Dec 2050 16:00:00 GMT'),
             ('Cache-Control', 'max-age=31536000'),
         ]
+        if is_request_cors_eligible(environ) is True:
+            headers.extend(get_cors_headers(environ))
+
         start_response("200 OK", headers)
         return [contents]
     except:
