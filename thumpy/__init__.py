@@ -180,6 +180,16 @@ class Image(object):
 
             self.zoom_crop(w=crop_width, h=crop_height, top=crop_top, left=crop_left)
 
+        # Post-scaling operations
+        if 'pw' in options and 'ph' in options:
+            # scale both width and height
+            self.scale(int(options['pw']), int(options['ph']))
+        elif 'pw' in options:
+            # scale width to w, and height proportionally
+            self.scale_to_width(int(options['pw']))
+        elif 'ph' in options:
+            # scale height to h, and width proportionally
+            self.scale_to_height(int(options['ph']))
 
         # Other filters
         if 'gray' in options:
