@@ -133,6 +133,19 @@ class Image(object):
 
         self.im = self.im.crop((left, top, right, bottom))
 
+    def zoom_crop(self, w=None, h=None, left=None, top=None):
+        org_image_width = self.im.size[0]
+
+        w = int(float(w) * org_image_width)
+        h = int(float(h) * org_image_width)
+        left = int(float(left) * org_image_width)
+        top = int(float(top) * org_image_width)
+
+        right = left + w
+        bottom = top + h
+
+        self.im = self.im.crop((left, top, right, bottom))
+
     def process(self, options):
 
         # First do all the scaling operations
@@ -154,6 +167,18 @@ class Image(object):
         elif 'ch' in options:
             self.crop(h=int(options['ch']))
 
+        # Now do any zoom cropping. 
+        if ('zcw' in options or 'zch' in options) and 'zct' in options and 'zcl' in options:
+
+            crop_left = options.get('zcl')
+            crop_top = options.get('zct')
+            crop_width = options.get('zcw')
+            crop_height = options.get('zch')
+
+            crop_height = crop_width if crop_height is None and crop_width is not None else crop_height
+            crop_width = crop_height if crop_width is None and crop_height is not None else crop_width
+
+            self.zoom_crop(w=crop_width, h=crop_height, top=crop_top, left=crop_left)
 
 
         # Other filters
