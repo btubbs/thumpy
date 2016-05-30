@@ -137,11 +137,11 @@ class Image(object):
         if (w is None and h is None) or left is None or top is None:
             raise Exception('Zoom crop requires at least width or height and both left and top')
             
-        w = int(w) if w is not None else int(h)
-        h = int(h) if h is not None else int(w)
+        w = int(float(w)) if w is not None else int(float(h))
+        h = int(float(h)) if h is not None else int(float(w))
 
-        left = int(left)
-        top = int(top)
+        left = int(float(left))
+        top = int(float(top))
 
         right = left + w
         bottom = top + h
