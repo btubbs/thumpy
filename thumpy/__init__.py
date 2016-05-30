@@ -134,12 +134,14 @@ class Image(object):
         self.im = self.im.crop((left, top, right, bottom))
 
     def zoom_crop(self, w=None, h=None, left=None, top=None):
-        org_image_width = self.im.size[0]
+        if (w is None and h is None) or left is None or top is None:
+            raise Exception('Zoom crop requires at least width or height and both left and top')
+            
+        w = int(w) if w is not None else int(h)
+        h = int(h) if h is not None else int(w)
 
-        w = int(float(w) * org_image_width)
-        h = int(float(h) * org_image_width)
-        left = int(float(left) * org_image_width)
-        top = int(float(top) * org_image_width)
+        left = int(left)
+        top = int(top)
 
         right = left + w
         bottom = top + h
@@ -168,17 +170,11 @@ class Image(object):
             self.crop(h=int(options['ch']))
 
         # Now do any zoom cropping. 
-        if ('zcw' in options or 'zch' in options) and 'zct' in options and 'zcl' in options:
-
-            crop_left = options.get('zcl')
-            crop_top = options.get('zct')
-            crop_width = options.get('zcw')
-            crop_height = options.get('zch')
-
-            crop_height = crop_width if crop_height is None and crop_width is not None else crop_height
-            crop_width = crop_height if crop_width is None and crop_height is not None else crop_width
-
-            self.zoom_crop(w=crop_width, h=crop_height, top=crop_top, left=crop_left)
+        if any(option in options for option in ['zcw', 'zch', 'zct', 'zcl']):
+            self.zoom_crop(w=options.get('zcw'),
+                           h=options.get('zch'),
+                           top=options.get('zct'),
+                           left=options.get('zcl'))
 
         # Post-scaling operations
         if 'pw' in options and 'ph' in options:
