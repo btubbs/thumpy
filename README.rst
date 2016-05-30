@@ -36,6 +36,12 @@ Specify both height and width::
 
   http://mythumpyserver.somewhere/castle.jpg?w=200&h=150
 
+Scaling (Post processing)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Same as Scaling (above) but applied to the output image after all transformations
+
+  http://mythumpyserver.somewhere/castle.jpg?pw=200&ph=150
+
 Cropping
 ~~~~~~~~
 
@@ -49,6 +55,22 @@ Crop the width and height to 50::
 
 - Thumpy will always scale first before any cropping.
 - Thumpy always crops from the center of the image.
+
+Reveal Mask / Zoom Cropping
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Minimum 3 parameters required:
+- Top offset (i.e. zct=100px)
+- Left offset (i.e. zcl=100px)
+- Width or Hight of the output crop from the offsets. If only one provided the other will automatically be assigned the other's value.
+
+The mask should be applied to the original image which means there is no scaling but only masking. 
+
+See: Scaling (Post processing) to get the scaled mask/crop.
+
+Get 100px x 50px scaled crop off a larger image with a reveal mask of 350px x 175px applied at 20px x 10px top-left offset.
+
+    http://mythumpyserver.somewhere/castle.jpg?zcw=350&zch=175&zct=20&zcl=10&pw=100&ph=50
+
 
 Greyscale
 ~~~~~~~~~
