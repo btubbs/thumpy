@@ -8,8 +8,10 @@ as Amazon CloudFront.
 Configuration
 =============
 
-Settings are stored in the settings.yaml file.  They should include the name
-and access keys to your S3 bucket.
+Settings are stored in the settings.yaml file. They should include:
+- the name and access keys to your S3 bucket
+- compression quality (e.g. 80)
+- list of CORS allowed hosts
 
 Interface
 =========
@@ -59,9 +61,9 @@ Crop the width and height to 50::
 Reveal Mask / Zoom Cropping
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Minimum 3 parameters required:
-- Top offset (i.e. zct=100px)
-- Left offset (i.e. zcl=100px)
-- Width or Hight of the output crop from the offsets. If only one provided the other will automatically be assigned the other's value.
+- Top offset (e.g. zct=100px)
+- Left offset (e.g. zcl=100px)
+- Width or Height of the output crop from the offsets. If only one is provided the other will automatically be assigned the other's value.
 
 The mask should be applied to the original image which means there is no scaling but only masking. 
 

@@ -23,7 +23,7 @@ setup(
         ],
     },
     url='http://bits.btubbs.com/thumpy',
-    description=('A Python web server that uses PIL to dynamically scale, '
+    description=('A Python web server that uses Pillow to dynamically scale, '
                  'crop, transform and serve images from S3 or the local '
                  'filesystem'),
     long_description=open('README.rst').read(),
