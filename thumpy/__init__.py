@@ -47,7 +47,7 @@ class S3Storage(object):
 
         key = self.bucket.get_key(path)
         if path is None:
-            raise MissingImage, "No key for %s" % path
+            raise MissingImage("No key for %s" % path)
 
         # For returning PIL "Image" from a url see
         # http://blog.hardlycode.com/pil-image-from-url-2011-01/.  That will
@@ -62,7 +62,7 @@ class S3Storage(object):
         try:
             im.im = PILImage.open(StringIO(key.read()))
         except IOError:
-            raise MissingImage, path
+            raise MissingImage(path)
         return im
 
 
@@ -82,7 +82,7 @@ class LocalStorage(object):
         try:
             im.im = PILImage.open(f)
         except IOError:
-            raise MissingImage, "No file for %s" % path
+            raise MissingImage("No file for %s" % path)
         im.storage = self
         return im
 
@@ -136,7 +136,7 @@ class Image(object):
     def zoom_crop(self, w=None, h=None, left=None, top=None):
         if (w is None and h is None) or left is None or top is None:
             raise Exception('Zoom crop requires at least width or height and both left and top')
-            
+
         w = int(float(w)) if w is not None else int(float(h))
         h = int(float(h)) if h is not None else int(float(w))
 
@@ -169,7 +169,7 @@ class Image(object):
         elif 'ch' in options:
             self.crop(h=int(options['ch']))
 
-        # Now do any zoom cropping. 
+        # Now do any zoom cropping.
         if any(option in options for option in ['zcw', 'zch', 'zct', 'zcl']):
             self.zoom_crop(w=options.get('zcw'),
                            h=options.get('zch'),
@@ -240,9 +240,9 @@ def get_storage(config):
 def is_request_cors_eligible(environ):
     if 'HTTP_ORIGIN' not in environ:
         return False
-        
+
     http_origin = environ['HTTP_ORIGIN']
-    
+
     if http_origin in config['cors_hosts']:
         return True
     else:
@@ -327,11 +327,11 @@ def run():
     address = config['host'], config['port']
     server = WSGIServer(address, app)
     try:
-        print "Server running on port %s:%d. Ctrl+C to quit" % address
+        print("Server running on port %s:%d. Ctrl+C to quit" % address)
         server.serve_forever()
     except KeyboardInterrupt:
         server.stop()
-        print "Bye bye"
+        print("Bye bye")
 
 if __name__ == '__main__':
     run()
