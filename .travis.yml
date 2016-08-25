@@ -1,0 +1,16 @@
+language: python
+python:
+- 2.7
+script:
+- python setup.py test
+deploy:
+  provider: pypi
+  server: https://upload.pypi.org/legacy/
+  on:
+    tags: true
+    all_branches: true
+    python: 2.7
+  user: jaraco
+  password:
+    secure: Mq1Kyv9x/8a3XfCIM/xF5QZDIoIrS2o/ViPWkTNmxkYV8bU4+t54CGikIFfZ/tF1eo4M+PqiExF8ut6ybuf7DNHbNU1dRrJC3ireuBfoo6+3Bx5GBqNH7q5+vF88fmMwAY2VCeF2BJbl0AbX9Hg0BF0dJteYXSQ4twVjdxCwfwMus6hEWohzv720aWpN5exioXRpQUWFK8zz0k457k2TtusuXCpW3RqvSwih/0heNqrbkPxCqVK6rBCtCOaQQpEydZHfG3tdZ2VSQvJPf+d2b1nJThba9Npm3DkJxIa+luzoiQIthI4ixUpZTStBMUPwXhCBKACVHyEPJ96M6XEjZzFeR5teu8FDu2+VK+IG4yIDGBUyeiXSzNDB2ySLQtZ0OaGHfLZsW0XyAYr8JYBl+y2hKV7BgKhJnMTXV1w/NQ0I4xPMiwyWPzvuR1zAz2mMTTw/rzzKrU06cdD293OHUGs18sswL6sQZx6/XnBMnhYQMWKKyuM5Cq4tvSfTmFVlKeqcYveCBu9Ll28li5bpv9WxnfTJZWne3j1WL9wtzDbyFrS78+YXOwU3hrSD/NCY1Cez9c5Vfynz3hr429/tQpgVmGK232eTFbmnkAS7sWxyZYFqz5u6QJGtSHpUJ4nPAclbXZ2l361CDm1aHOk2ZQXvP+ni0k2EN5ILAY4ffF8=
+  distributions: sdist
