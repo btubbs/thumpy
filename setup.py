@@ -22,7 +22,7 @@ setup(
             'thumpy = thumpy:run',
         ],
     },
-    url='http://bits.btubbs.com/thumpy',
+    url='https://github.com/btubbs/thumpy',
     description=('A Python web server that uses Pillow to dynamically scale, '
                  'crop, transform and serve images from S3 or the local '
                  'filesystem'),
