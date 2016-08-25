@@ -19,7 +19,7 @@ Interface
 Thumpy serves images using the same paths as their storage location on S3.
 Conversion parameters are specified in the query string, using an interface
 inspired by `TimThumb
-<http://www.binarymoon.co.uk/projects/timthumb/>`_.  
+<http://www.binarymoon.co.uk/projects/timthumb/>`_.
 
 examples:
 
@@ -65,7 +65,7 @@ Minimum 3 parameters required:
 - Left offset (e.g. zcl=100px)
 - Width or Height of the output crop from the offsets. If only one is provided the other will automatically be assigned the other's value.
 
-The mask should be applied to the original image which means there is no scaling but only masking. 
+The mask should be applied to the original image which means there is no scaling but only masking.
 
 See: Scaling (Post processing) to get the scaled mask/crop.
 
@@ -91,7 +91,7 @@ This is to workaround Amazon Cloudfront dropping the URL query string when makin
 	http://mycloudfrontdist.somewhere/w=100/path/to/image/castle.jpg
 
 For the original, unaltered image, place an "o" where the query string would go, like this::
-	
+
 	http://mycloudfrontdist.somewhere/o/path/to/image/castle.jpg
 
 
