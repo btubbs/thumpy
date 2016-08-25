@@ -14,6 +14,9 @@ setup(
         'gevent==0.13.6',
         'pyyaml==3.10',
     ],
+    setup_requires=[
+        'setuptools_scm',
+    ],
     entry_points = {
         'console_scripts': [
             'thumpy = thumpy:run',
