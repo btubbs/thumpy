@@ -1,5 +1,10 @@
 #!/usr/bin/python
+import sys
+
 from setuptools import setup, find_packages
+
+needs_wheel = {'release', 'bdist_wheel'}.intersection(sys.argv)
+wheel = ['wheel'] if needs_wheel else []
 
 setup(
     name='thumpy',
@@ -16,7 +21,7 @@ setup(
     ],
     setup_requires=[
         'setuptools_scm',
-    ],
+    ] + wheel,
     entry_points = {
         'console_scripts': [
             'thumpy = thumpy:run',
