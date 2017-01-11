@@ -18,7 +18,7 @@ setup(
         'boto>=2.45.0',
         'gevent>=1.2.0',
         'pyyaml>=3.10',
-        'six==1.10.0',
+        'six>=1.10.0',
     ],
     setup_requires=[
         'setuptools_scm',
