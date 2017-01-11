@@ -79,21 +79,3 @@ Greyscale
 
 Example of a greyscale image with no resizing::
 	http://mythumpyserver.somewhere/castle.jpg?gray=1
-
-
-Cloudfront Ugliness
-~~~~~~~~~~~~~~~~~~~
-
-If the "cloudfront_ugliness" option in thumpy's config is set to true, then the image modification parameters will be pulled from the first segment of the path instead of the URL query string.
-
-This is to workaround Amazon Cloudfront dropping the URL query string when making requests to your origin server.  Example::
-
-	http://mycloudfrontdist.somewhere/w=100/path/to/image/castle.jpg
-
-For the original, unaltered image, place an "o" where the query string would go, like this::
-
-	http://mycloudfrontdist.somewhere/o/path/to/image/castle.jpg
-
-
-
-

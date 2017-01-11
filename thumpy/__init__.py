@@ -4,10 +4,12 @@
 Thumpy web process to resize images.
 """
 
+
 import argparse
 import os
-import yaml
+import traceback
 
+import yaml
 from six.moves.urllib.parse import parse_qsl
 from six import BytesIO
 
@@ -25,7 +27,7 @@ class MissingImage(Exception):
 
 
 class S3Storage(object):
-    def __init__(self, s3_key, s3_secret, s3_bucket, quality, **kwargs):
+    def __init__(self, s3_key, s3_secret, s3_bucket, quality=75, **kwargs):
         self.conn = connect_s3(s3_key, s3_secret)
         self.bucket = self.conn.get_bucket(s3_bucket)
         self.quality = quality
@@ -36,14 +38,14 @@ class S3Storage(object):
 
         key = self.bucket.get_key(path)
         if path is None:
-            raise MissingImage("No key for %s" % path)
+            raise MissingImage("No S3 key for %s" % path)
 
         # For returning PIL "Image" from a url see
         # http://blog.hardlycode.com/pil-image-from-url-2011-01/.  That will
         # need to be adapted a little bit to work from S3, but should be fine.
 
         if not key or not key.exists():
-            raise MissingImage("No file for %s" % path)
+            raise MissingImage("No S3 file for %s" % path)
 
         im = Image(path, quality=self.quality)
         # actually stick the data in there
@@ -51,7 +53,7 @@ class S3Storage(object):
         try:
             im.im = PILImage.open(BytesIO(key.read()))
         except IOError:
-            raise MissingImage(path)
+            raise MissingImage("Could not read data for " + path)
         return im
 
 
@@ -212,11 +214,11 @@ def oparse_qs(qs, keep_blank_values=0, strict_parsing=0):
 
 def Http404(start_response):
     start_response("404 NOT FOUND", [('Content-Type','text/plain')])
-    return ["File not found"]
+    return [b"File not found"]
 
 def Http500(start_response):
     start_response("500 SERVER ERROR", [('Content-Type','text/plain')])
-    return ["Server Error"]
+    return [b"Server Error"]
 
 def get_storage(config):
     if config['storage'] == 'LocalStorage':
@@ -250,37 +252,31 @@ class App():
         self.config = config
 
     def __call__(self, environ, start_response):
+        print('calling')
         # catch all server errors.  only dump stacktrace if self.config['debug'] is
         # true.
         try:
+            print('getting storage')
             sto = get_storage(self.config)
+            print('got storage')
 
             # throw away the leading slash on the path.
             path = environ['PATH_INFO']
             if path.startswith('/'):
                 path = path[1:]
 
-            # DIRTY CLOUDFRONT HACK HERE
-            # CloudFront didn't used to pass query string arguments, so we had to
-            # put image change params into the path.  Now it passes them, so we
-            # have this interim hack where if ugliness is enabled, and there are no
-            # actual qs args, then we'll try to get them from the first path
-            # component.
-            if self.config['cloudfront_ugliness'] and not environ['QUERY_STRING']:
-                pathparts = path.split('/')
-                filepath = '/'.join(pathparts[1:])
-                params = oparse_qs(pathparts[0])
-            else:
-                filepath = path
-                params = oparse_qs(environ['QUERY_STRING'])
+            filepath = path
+            params = oparse_qs(environ['QUERY_STRING'])
 
             if self.config['ignore_favicon'] and filepath == 'favicon.ico':
                 return Http404(start_response)
 
+            print('getting image')
             try:
                 im = sto.get_image(filepath)
             except MissingImage:
                 return Http404(start_response)
+            print('get image')
 
             im.process(options=params)
             contents = im.contents
@@ -295,11 +291,8 @@ class App():
             start_response("200 OK", headers)
             return contents
         except:
-            if self.config.get('debug') == True:
-                # re-raise original exception
-                raise
-            else:
-                return Http500(start_response)
+            traceback.print_exc()
+            return Http500(start_response)
 
 
 def nice_bool(val):
