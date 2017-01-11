@@ -16,8 +16,8 @@ setup(
     install_requires = [
         'pillow==3.2.0',
         'boto==2.1.0',
-        'gevent==0.13.6',
-        'pyyaml==3.10',
+        'gevent>=1.2.0',
+        'pyyaml>=3.10',
     ],
     setup_requires=[
         'setuptools_scm',

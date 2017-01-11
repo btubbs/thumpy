@@ -19,27 +19,15 @@ from PIL import ImageOps, Image as PILImage
 from boto import connect_s3
 
 
-# Default configuration here.  Override by specifying a settings.yaml file with
-# your own values.
-config = {
-    'host': 'localhost',
-    'port': 8000,
-    'ignore_favicon': True,
-    'cloudfront_ugliness': False,
-    'storage': 'LocalStorage',
-    'quality': 75,
-    'cors_hosts': [],
-}
-
-
 class MissingImage(Exception):
     pass
 
 
 class S3Storage(object):
-    def __init__(self, s3_key, s3_secret, s3_bucket, **kwargs):
+    def __init__(self, s3_key, s3_secret, s3_bucket, quality, **kwargs):
         self.conn = connect_s3(s3_key, s3_secret)
         self.bucket = self.conn.get_bucket(s3_bucket)
+        self.quality = quality
 
     def get_image(self, path):
         # Make a boto connection, pull down the file, and return the file
@@ -56,7 +44,7 @@ class S3Storage(object):
         if not key or not key.exists():
             raise MissingImage("No file for %s" % path)
 
-        im = Image(path)
+        im = Image(path, quality=self.quality)
         # actually stick the data in there
         im.storage = self
         try:
@@ -67,8 +55,9 @@ class S3Storage(object):
 
 
 class LocalStorage(object):
-    def __init__(self, root=None, **kwargs):
+    def __init__(self, root=None, quality=75, **kwargs):
         self.root = os.path.realpath(root or os.path.dirname(__file__))
+        self.quality = quality
 
     def get_image(self, path):
         f = os.path.realpath(os.path.join(self.root, path))
@@ -78,7 +67,7 @@ class LocalStorage(object):
         assert f.startswith(self.root)
 
         # TODO: ensure that the file is actually an image.
-        im = Image(path)
+        im = Image(path, quality=self.quality)
         try:
             im.im = PILImage.open(f)
         except IOError:
@@ -88,11 +77,12 @@ class LocalStorage(object):
 
 
 class Image(object):
-    def __init__(self, path):
+    def __init__(self, path, quality=75):
         self.path = path
+        self.quality=quality
 
-        # TODO: isn't there a python mimetypes library that can do this file
-        # format guessing a little more intelligently?
+        # Browsers like a image/jpeg content-type but not image/jpg.
+        # Pillow wants a format that's like 'jpeg', 'gif', 'png', or 'bmp'
         self.fmt = path.split('.')[-1].lower()
         if self.fmt.lower() == 'jpg':
             self.fmt = 'jpeg'
@@ -194,13 +184,11 @@ class Image(object):
     @property
     def contents(self):
         # Write the file contents out to a specific format, but just in memory.
-        # Return them as a string.
+        # Return the file obj
         f = StringIO()
-        self.im.save(f, self.fmt, quality=config['quality'])
+        self.im.save(f, self.fmt, quality=self.quality)
         f.seek(0)
-        # TODO: probably better to just return the file object rather than copy
-        # it out into a string, which doubles the memory usage.
-        return f.read()
+        return f
 
     @property
     def mimetype(self, fmt=None):
@@ -237,7 +225,7 @@ def get_storage(config):
     else:
         raise Exception('Invalid storage backend.')
 
-def is_request_cors_eligible(environ):
+def is_request_cors_eligible(environ, config):
     if 'HTTP_ORIGIN' not in environ:
         return False
 
@@ -255,62 +243,95 @@ def get_cors_headers(environ):
         ('Access-Control-Allow-Origin', http_origin),
     ]
 
-def app(environ,start_response):
-    # catch all server errors.  only dump stacktrace if config['debug'] is
-    # true.
-    try:
-        sto = get_storage(config)
 
-        # throw away the leading slash on the path.
-        path = environ['PATH_INFO']
-        if path.startswith('/'):
-            path = path[1:]
+class App():
+    def __init__(self, config):
+        self.config = config
 
-        # DIRTY CLOUDFRONT HACK HERE
-        # CloudFront didn't used to pass query string arguments, so we had to
-        # put image change params into the path.  Now it passes them, so we
-        # have this interim hack where if ugliness is enabled, and there are no
-        # actual qs args, then we'll try to get them from the first path
-        # component.
-        if config['cloudfront_ugliness'] and not environ['QUERY_STRING']:
-            pathparts = path.split('/')
-            filepath = '/'.join(pathparts[1:])
-            params = oparse_qs(pathparts[0])
-        else:
-            filepath = path
-            params = oparse_qs(environ['QUERY_STRING'])
-
-        if config['ignore_favicon'] and filepath == 'favicon.ico':
-            return Http404(start_response)
-
+    def __call__(self, environ, start_response):
+        # catch all server errors.  only dump stacktrace if self.config['debug'] is
+        # true.
         try:
-            im = sto.get_image(filepath)
-        except MissingImage:
-            return Http404(start_response)
+            sto = get_storage(self.config)
 
-        im.process(options=params)
-        contents = im.contents
-        headers = [
-            ('Content-Type', im.mimetype),
-            ('Expires', 'Thu, 01 Dec 2050 16:00:00 GMT'),
-            ('Cache-Control', 'max-age=31536000'),
-        ]
-        if is_request_cors_eligible(environ) is True:
-            headers.extend(get_cors_headers(environ))
+            # throw away the leading slash on the path.
+            path = environ['PATH_INFO']
+            if path.startswith('/'):
+                path = path[1:]
 
-        start_response("200 OK", headers)
-        return [contents]
-    except:
-        if config.get('debug') == True:
-            # re-raise original exception
-            raise
-        else:
-            return Http500(start_response)
+            # DIRTY CLOUDFRONT HACK HERE
+            # CloudFront didn't used to pass query string arguments, so we had to
+            # put image change params into the path.  Now it passes them, so we
+            # have this interim hack where if ugliness is enabled, and there are no
+            # actual qs args, then we'll try to get them from the first path
+            # component.
+            if self.config['cloudfront_ugliness'] and not environ['QUERY_STRING']:
+                pathparts = path.split('/')
+                filepath = '/'.join(pathparts[1:])
+                params = oparse_qs(pathparts[0])
+            else:
+                filepath = path
+                params = oparse_qs(environ['QUERY_STRING'])
+
+            if self.config['ignore_favicon'] and filepath == 'favicon.ico':
+                return Http404(start_response)
+
+            try:
+                im = sto.get_image(filepath)
+            except MissingImage:
+                return Http404(start_response)
+
+            im.process(options=params)
+            contents = im.contents
+            headers = [
+                ('Content-Type', im.mimetype),
+                ('Expires', 'Thu, 01 Dec 2050 16:00:00 GMT'),
+                ('Cache-Control', 'max-age=31536000'),
+            ]
+            if is_request_cors_eligible(environ, self.config) is True:
+                headers.extend(get_cors_headers(environ))
+
+            start_response("200 OK", headers)
+            return contents
+        except:
+            if self.config.get('debug') == True:
+                # re-raise original exception
+                raise
+            else:
+                return Http500(start_response)
 
 
-def run():
-    from gevent.wsgi import WSGIServer
+def nice_bool(val):
+    if isinstance(val, str):
+        val = val.lower()
+    if val in {True, 'yes', 'true', '1'}:
+        return True
+    if val in {False, 'no', 'false', '0'}:
+        return False
+    raise ValueError("Cannot parse %s into a bool" % val)
 
+
+def get_config():
+    # Default configuration here.  Override by specifying a settings.yaml file with
+    # your own values.
+    config = {
+        'host': os.getenv('HOST', 'localhost'),
+        'port': int(os.getenv('PORT', 8000)),
+        'ignore_favicon': nice_bool(os.getenv('IGNORE_FAVICON', True)),
+        'cloudfront_ugliness': nice_bool(os.getenv('CLOUDFRONT_UGLINESS', False)),
+        'storage': 'LocalStorage',
+        'quality': 75,
+        'cors_hosts': [],
+        'debug': nice_bool(os.getenv('DEBUG', False)),
+
+        # for s3 storage
+        's3_key': os.getenv('AWS_ACCESS_KEY_ID'),
+        's3_secret': os.getenv('AWS_SECRET_ACCESS_KEY'),
+        's3_bucket': os.getenv('S3_BUCKET'),
+
+        # for local storage
+        'root': os.getenv('THUMPY_ROOT')
+    }
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', dest='config_file',
                     default='',
@@ -321,11 +342,14 @@ def run():
     if args.config_file:
         with open(args.config_file, 'r') as f:
             config.update(yaml.safe_load(f))
+    return config
 
-    # XXX: Can we monkeypatch with gevent to make our calls out to S3
-    # non-blocking?  Do we get that for free by using the gevent wsgi server?
+def run():
+    from gevent.wsgi import WSGIServer
+    config = get_config()
+
     address = config['host'], config['port']
-    server = WSGIServer(address, app)
+    server = WSGIServer(address, App(config))
     try:
         print("Server running on port %s:%d. Ctrl+C to quit" % address)
         server.serve_forever()

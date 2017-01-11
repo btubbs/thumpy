@@ -20,6 +20,6 @@ class ThumpyTestCase(unittest.TestCase):
         self.im = self.sto.get_image('Lenna.png')
 
     def test_resize(self):
-        assert len(self.im.contents) == 479778
+        assert len(self.im.contents.read()) == 479778
         self.im.scale_to_width(30)
-        assert len(self.im.contents) == 2229
+        assert len(self.im.contents.read()) == 2229
