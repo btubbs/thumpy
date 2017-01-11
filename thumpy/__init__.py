@@ -6,9 +6,10 @@ Thumpy web process to resize images.
 
 import argparse
 import os
-import urlparse
 import yaml
-from cStringIO import StringIO
+
+from six.moves.urllib.parse import parse_qsl
+from six import BytesIO
 
 try:
     from collections import OrderedDict
@@ -48,7 +49,7 @@ class S3Storage(object):
         # actually stick the data in there
         im.storage = self
         try:
-            im.im = PILImage.open(StringIO(key.read()))
+            im.im = PILImage.open(BytesIO(key.read()))
         except IOError:
             raise MissingImage(path)
         return im
@@ -185,7 +186,7 @@ class Image(object):
     def contents(self):
         # Write the file contents out to a specific format, but just in memory.
         # Return the file obj
-        f = StringIO()
+        f = BytesIO()
         self.im.save(f, self.fmt, quality=self.quality)
         f.seek(0)
         return f
@@ -203,7 +204,7 @@ def oparse_qs(qs, keep_blank_values=0, strict_parsing=0):
     # Also avoids replicating that function's bad habit of overriding the
     # built-in 'dict' type.
     od = OrderedDict()
-    for name, value in urlparse.parse_qsl(qs, keep_blank_values, strict_parsing):
+    for name, value in parse_qsl(qs, keep_blank_values, strict_parsing):
         if name not in od:
             od[name] = value
     return od

@@ -8,14 +8,14 @@ wheel = ['wheel'] if needs_wheel else []
 
 setup(
     name='thumpy',
-    version='0.3.2',
+    version='0.4.0',
     author='Brent Tubbs/Berry Phillips',
     author_email='brent.tubbs@gmail.com/berryphillips@gmail.com',
     packages=find_packages(),
     include_package_data=True,
     install_requires = [
         'pillow==3.2.0',
-        'boto==2.1.0',
+        'boto>=2.45.0',
         'gevent>=1.2.0',
         'pyyaml>=3.10',
     ],
