@@ -8,7 +8,7 @@ wheel = ['wheel'] if needs_wheel else []
 
 setup(
     name='thumpy',
-    version='0.4.1',
+    version='0.4.2',
     author='Brent Tubbs/Berry Phillips',
     author_email='brent.tubbs@gmail.com/berryphillips@gmail.com',
     packages=find_packages(),
