@@ -252,13 +252,10 @@ class App():
         self.config = config
 
     def __call__(self, environ, start_response):
-        print('calling')
         # catch all server errors.  only dump stacktrace if self.config['debug'] is
         # true.
         try:
-            print('getting storage')
             sto = get_storage(self.config)
-            print('got storage')
 
             # throw away the leading slash on the path.
             path = environ['PATH_INFO']
@@ -271,12 +268,10 @@ class App():
             if self.config['ignore_favicon'] and filepath == 'favicon.ico':
                 return Http404(start_response)
 
-            print('getting image')
             try:
                 im = sto.get_image(filepath)
             except MissingImage:
                 return Http404(start_response)
-            print('get image')
 
             im.process(options=params)
             contents = im.contents
