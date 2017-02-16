@@ -1,0 +1,7 @@
+The following are the authors of Thumpy.  If you contribute to the project,
+please add your name below.
+
+- Brent Tubbs
+- Berry Phillips
+- Jason Coombs
+- Pawel Prochot
