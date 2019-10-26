@@ -10,7 +10,7 @@ setup(
     name='thumpy',
     version='0.4.3',
     author='Brent Tubbs/Berry Phillips',
-    author_email='brent.tubbs@gmail.com/berryphillips@gmail.com',
+    author_email='brent.tubbs@gmail.com',
     packages=find_packages(),
     include_package_data=True,
     install_requires = [
