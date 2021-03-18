@@ -14,7 +14,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires = [
-        'pillow==6.2.0',
+        'pillow==8.1.1',
         'boto>=2.45.0',
         'gevent>=1.2.0',
         'pyyaml>=3.10',
